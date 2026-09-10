@@ -22,9 +22,9 @@ Feature suggestions are also welcome via [GitHub Issues](https://github.com/ys-l
 
 ### Prerequisites
 
-- [Go](https://go.dev/dl/) 1.23+
+- [Go](https://go.dev/dl/) 1.26+
 - [Node.js](https://nodejs.org/) 20+
-- [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2
+- [Wails CLI](https://wails.io/docs/gettingstarted/installation) v3 (`wails3`, `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12`)
 - **macOS**: Xcode Command Line Tools
 - **Linux**: `libgtk-3-dev` and `libwebkit2gtk-4.1-dev`
 - **Windows**: WebView2 runtime (included in Windows 10+)
@@ -35,13 +35,14 @@ Feature suggestions are also welcome via [GitHub Issues](https://github.com/ys-l
 git clone https://github.com/ys-ll/uniterm.git
 cd uniTerm
 cd frontend && npm install && cd ..
-wails dev                   # Development mode
-wails build                 # Production build
+source scripts/env.sh      # portable Go proxy + pinned toolchain for fresh machines
+wails3 dev                   # Development mode
+wails3 build                 # Production build
 ```
 
-> **Note:** After modifying frontend code, clear the cache and rebuild manually before running `wails dev`, otherwise changes may not take effect:
+> **Note:** After modifying frontend code, clear the cache and rebuild manually before running `wails3 dev`, otherwise changes may not take effect:
 > ```bash
-> cd frontend && rm -rf dist node_modules/.vite && npm run build && cd .. && wails dev
+> cd frontend && rm -rf dist node_modules/.vite && npm run build && cd .. && wails3 dev
 > ```
 
 ## Development Workflow
@@ -58,6 +59,12 @@ wails build                 # Production build
 - Write commit messages in **English**
 - Keep commits focused and atomic
 - Use the present tense ("Add feature", not "Added feature")
+
+## Versioning
+
+- Since 1.0, uniTerm uses **Semantic Versioning** (`vX.Y.Z`, e.g. `v1.9.2`) in [CHANGELOG.md](CHANGELOG.md).
+- Each user-facing release adds a `## vX.Y.Z` CHANGELOG section, mirroring the git tag.
+- Pre-1.0 alpha tags (`vYYYY.MM.DD-alpha`) are historical only — do not introduce new ones.
 
 ## Pull Request Guidelines
 
@@ -89,7 +96,7 @@ uniTerm/
 
 | Layer | Technology |
 |-------|-----------|
-| Desktop Framework | Wails v2 |
+| Desktop Framework | Wails v3 |
 | Backend | Go |
 | Frontend | Vue 3 + Pinia + Element Plus |
 | Terminal | xterm.js |
@@ -127,9 +134,9 @@ Thanks again for contributing! ❤️
 
 ### 环境要求
 
-- [Go](https://go.dev/dl/) 1.23+
+- [Go](https://go.dev/dl/) 1.26+
 - [Node.js](https://nodejs.org/) 20+
-- [Wails CLI](https://wails.io/docs/gettingstarted/installation) v2
+- [Wails CLI](https://wails.io/docs/gettingstarted/installation) v3 (`wails3`, `go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.12`)
 - **macOS**：Xcode Command Line Tools
 - **Linux**：`libgtk-3-dev` 和 `libwebkit2gtk-4.1-dev`
 - **Windows**：WebView2 运行时（Windows 10+ 已内置）
@@ -140,13 +147,13 @@ Thanks again for contributing! ❤️
 git clone https://github.com/ys-ll/uniterm.git
 cd uniTerm
 cd frontend && npm install && cd ..
-wails dev                   # 开发模式
-wails build                 # 生产构建
+wails3 dev                   # 开发模式
+wails3 build                 # 生产构建
 ```
 
-> **注意：** 修改前端代码后，必须先清理缓存并手动构建再启动 `wails dev`，否则修改可能不生效：
+> **注意：** 修改前端代码后，必须先清理缓存并手动构建再启动 `wails3 dev`，否则修改可能不生效：
 > ```bash
-> cd frontend && rm -rf dist node_modules/.vite && npm run build && cd .. && wails dev
+> cd frontend && rm -rf dist node_modules/.vite && npm run build && cd .. && wails3 dev
 > ```
 
 ## 开发流程
@@ -163,6 +170,12 @@ wails build                 # 生产构建
 - 提交信息使用 **英文**
 - 保持每次提交聚焦且原子化
 - 使用现在时态（"Add feature" 而非 "Added feature"）
+
+## 版本命名
+
+- 自 1.0 起，uniTerm 在 [CHANGELOG.md](CHANGELOG.md) 中使用**语义化版本**（`vX.Y.Z`，如 `v1.9.2`），与 git tag 一一对应。
+- 每个面向用户的版本新增一个 `## vX.Y.Z` 小节，与 git tag 保持一致。
+- `vYYYY.MM.DD-alpha` 仅代表 1.0 前的历史 alpha 版本，请勿再新增此类标签。
 
 ## PR 规范
 
@@ -194,7 +207,7 @@ uniTerm/
 
 | 层级 | 技术 |
 |------|------|
-| 桌面框架 | Wails v2 |
+| 桌面框架 | Wails v3 |
 | 后端 | Go |
 | 前端 | Vue 3 + Pinia + Element Plus |
 | 终端引擎 | xterm.js |

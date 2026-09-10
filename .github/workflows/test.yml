@@ -1,0 +1,99 @@
+name: Tests / Coverage
+
+# Report-only coverage & unit-test job for the GUI-independent backend packages
+# and the frontend. This workflow NEVER blocks a PR: it produces a coverage
+# report (uploaded as an artifact) plus a step summary. Once a baseline is
+# established, either raise coverage thresholds in frontend/vite.config.ts or
+# convert the `go test -cover` line below into a hard gate (see
+# PROJECT_ANALYSIS.md §C2).
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '**/*.go'
+      - '**/*.test.ts'
+  pull_request:
+    branches: ['main']
+
+jobs:
+  go-coverage:
+    name: Go unit tests + coverage (report-only)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26'
+
+      - name: Run backend tests with coverage
+        shell: bash
+        run: |
+          # Exclude platform-bound packages (session/k8s/platform) that need
+          # cgo/gtk to build on a headless runner. Expand as needed.
+          PKGS=$(go list ./backend/... \
+            | grep -vE '/(session|k8s|update|platform)$') || true
+          if [ -z "$PKGS" ]; then
+            echo "No testable backend packages selected; skipping."
+            exit 0
+          fi
+          go test -coverprofile=coverage.out -covermode=atomic $PKGS || \
+            { echo "⚠️ backend tests failed (see logs)"; exit 0; }
+
+      - name: Summarize coverage
+        shell: bash
+        run: |
+          if [ -f coverage.out ]; then
+            TOTAL=$(go tool cover -func=coverage.out | tail -1)
+            {
+              echo "## Go 后端覆盖率"
+              echo '```'
+              go tool cover -func=coverage.out
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Go coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: go-coverage
+          path: coverage.out
+          if-no-files-found: ignore
+
+  frontend-coverage:
+    name: Frontend tests + coverage (report-only)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run vitest with coverage
+        working-directory: frontend
+        run: npm run test:coverage
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore

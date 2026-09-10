@@ -224,6 +224,28 @@ wails3 dev                  # Development
 wails3 build                # Production build
 ```
 
+### Reproducible build on a fresh machine
+
+To get the exact same build on any machine without fiddling with Go's global
+config (important where the default `proxy.golang.org` is unreachable), source
+the bundled environment helper — it picks a reachable module proxy and pins the
+toolchain to the version `go.mod` requires:
+
+```bash
+source scripts/env.sh
+wails3 build                # then wails3 dev / task build
+```
+
+- Dependencies are resolved every time by the locked versions in `go.sum`; Go
+  downloads each version once into its local module cache and reuses it, so
+  builds are deterministic and don't re-fetch on repeat builds.
+- Toolchain: `go.mod` declares `go 1.26.2`; with `GOTOOLCHAIN=auto` (the default)
+  Go fetches that exact toolchain on first use instead of relying on whatever
+  `go` is installed.
+- There is intentionally **no `vendor/`** in this repo: Wails v3 embeds
+  build-time DLLs, which prevents standard `go mod vendor`. Use
+  `scripts/env.sh` + the module cache for offline/reproducible builds instead.
+
 ## Project Structure
 
 ```

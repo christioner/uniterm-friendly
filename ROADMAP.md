@@ -4,6 +4,8 @@ This document tracks the protocols and core features uniTerm already ships, and 
 
 Legend: ✅ Shipped, 🚧 Planned
 
+> **Versioning convention:** Since the 1.0 release, uniTerm uses **Semantic Versioning** (`vX.Y.Z`, e.g. `v1.9.2`), recorded in [CHANGELOG.md](CHANGELOG.md). Pre-1.0 alpha builds used calendar versioning (`vYYYY.MM.DD-alpha`, e.g. `v2026.05.23-alpha`). The `Since` column below records the first release in which each protocol shipped, so older rows keep their original pre-1.0 tag rather than being rewritten.
+
 ## Protocol Support
 
 ### Terminal
