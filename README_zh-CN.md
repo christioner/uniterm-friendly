@@ -19,9 +19,20 @@
 
 </div>
 
+<div align="center">
+
+> **🔀 衍生版本 · 基于 [ys-ll/uniterm](https://github.com/ys-ll/uniterm)**
+>
+> 本仓库为 **uniTerm v1.9.2** 的**衍生版本**，继续沿用 **Apache-2.0** 开源协议。详见 [衍生与上游](#-衍生与上游)。<br>
+> This repository is a **derivative** of **uniTerm v1.9.2** and continues under the **Apache-2.0** license. See [Derivative &amp; Upstream](#-derivative--upstream).
+
+</div>
+
 ## 目录
 
 - [功能特性](#功能特性)
+- [本衍生版新增](#本衍生版新增)
+- [衍生与上游](#-衍生与上游)
 - [支持的协议](#支持的协议)
 - [界面截图](#界面截图)
 - [下载安装](#下载安装)
@@ -262,6 +273,27 @@ uniTerm/
 
 已实现的协议 / 功能与后续计划见 [ROADMAP.md](ROADMAP.md)，逐版本的更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
+## 本衍生版新增
+
+相对所基于的 `ys-ll/uniterm` 上游，本构建新增/优化了：
+
+- **RDP 双连接方式** — 每条 RDP 连接可选择**内置视图**（标签页内嵌）或**系统远程桌面(mstsc.exe)**；
+  mstsc 模式通过写入 Windows [凭据管理器](https://learn.microsoft.com/en-us/windows/win32/api/wincred/)（`TERMSRV/<主机>`）
+  在 NLA 下**可靠自动登录**（不弹密码框）；并支持从连接表单应用 mstsc 的**显示设置**（全屏 / 固定分辨率 / 智能缩放）。
+- **顶部连接快速搜索** — 右上角搜索框按 **名称 / 主机 / 用户名** 过滤已保存连接；
+  按 **`Ctrl+E`** 聚焦，方向键选择、`Enter` 打开。
+- **键盘易用性** — `Ctrl+Space` 不再被终端吞掉（可正常用于唤起 PowerToys Run 等系统启动器）。
+- **开发/打包修复** — dev 构建不再误报“发现新版本”；dev 服务绑定 IPv4，确保 Wails 窗口能正常加载；
+  提供 Windows 绿色版（WebView2）构建说明。
+
+## 🔄 衍生与上游
+
+- **上游项目：** [ys-ll/uniterm](https://github.com/ys-ll/uniterm)；Gitee 镜像：
+  [ys-l/uniterm](https://gitee.com/ys-l/uniterm)。基于 **Apache-2.0** 协议。
+- **本仓库为上述项目的衍生版（fork），继承自 uniTerm v1.9.2**（上游提交 `74326a1`）。
+- 继续以 **Apache-2.0** 协议分发（见 [LICENSE](LICENSE)），保留上游全部版权与许可声明，
+  本地改动见上文 [本衍生版新增](#本衍生版新增)。
+
 ## 欢迎 Star
 
 如果 uniTerm 对你有帮助，欢迎点一个 ⭐ Star，这是对项目最大的鼓励，也能让更多人发现它。
@@ -287,4 +319,5 @@ uniTerm/
 
 ## 开源协议
 
-Apache 2.0
+Apache 2.0 —— 与本仓库所基于的[上游 ys-ll/uniterm](https://github.com/ys-ll/uniterm)
+一致（见[衍生与上游](#-衍生与上游)）。完整条款见 [LICENSE](LICENSE)。

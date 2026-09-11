@@ -19,9 +19,20 @@ English &nbsp;|&nbsp; <a href="README_zh-CN.md">简体中文</a>
 
 </div>
 
+<div align="center">
+
+> **🔀 衍生版本 / Derivative of [ys-ll/uniterm](https://github.com/ys-ll/uniterm)**
+>
+> This repository is a **derivative** built on top of **uniTerm v1.9.2** and continues under the **Apache-2.0** license. See [Derivative &amp; Upstream](#-derivative--upstream).<br>
+> 本仓库为 **uniTerm v1.9.2** 的**衍生版本**，继续沿用 **Apache-2.0** 开源协议。详见 [衍生与上游](#-derivative--upstream)。
+
+</div>
+
 ## Table of Contents
 
 - [Features](#features)
+- [Derivative Features](#-本衍生版新增--derivative-features)
+- [Derivative & Upstream](#-derivative--upstream)
 - [Supported Protocols](#supported-protocols)
 - [Screenshots](#screenshots)
 - [Download](#download)
@@ -284,6 +295,34 @@ uniTerm/
 
 See [ROADMAP.md](ROADMAP.md) for the current protocol / feature status and what's planned next. For per-release history, see [CHANGELOG.md](CHANGELOG.md).
 
+## ✨ 本衍生版新增 / Derivative Features
+
+Compared with the upstream `ys-ll/uniterm` this build is forked from, it adds:
+
+- **RDP dual connection modes** — each RDP connection can be opened either in the
+  built-in (embedded) view or via the **system Remote Desktop (mstsc.exe)**, which
+  auto-signs in reliably under NLA using a [Credential Manager](https://learn.microsoft.com/en-us/windows/win32/api/wincred/)
+  entry (`TERMSRV/<host>`). mstsc display settings (fullscreen / fixed resolution /
+  smart sizing) are honored from the connection form.
+- **Quick-open connection search** — a search box in the top-right header filters
+  saved connections by name/host/user; press **`Ctrl+E`** to focus it, then arrow
+  keys / `Enter` to open.
+- **Keyboard ergonomics** — `Ctrl+Space` is passed through (not swallowed by the
+  terminal), so OS launchers such as PowerToys Run keep working.
+- **Dev / packaging fixes** — dev builds no longer show a spurious *"new version"*
+  reminder; the dev server binds IPv4 so the Wails window loads reliably; a portable
+  (WebView2) Windows build is documented.
+
+## 🔄 Derivative &amp; Upstream
+
+- **Upstream:** [ys-ll/uniterm](https://github.com/ys-ll/uniterm); Gitee mirror:
+  [ys-l/uniterm](https://gitee.com/ys-l/uniterm). Licensed under **Apache-2.0**.
+- **This repository is a derivative** (fork) of that project, forked from
+  **uniTerm v1.9.2** (upstream commit `74326a1`).
+- It continues to be distributed under the **Apache-2.0** license
+  ([LICENSE](LICENSE)); all upstream copyright/license notices are retained, and
+  local modifications are listed in [Derivative Features](#-本衍生版新增--derivative-features).
+
 ## Star this Project
 
 If uniTerm is helpful to you, please consider giving it a ⭐ Star — it's the best encouragement for the project and helps more people discover it.
@@ -309,4 +348,6 @@ Thanks to the following people for contributing code and improvements, and to ev
 
 ## License
 
-Apache 2.0
+Apache 2.0 — same as the upstream [ys-ll/uniterm](https://github.com/ys-ll/uniterm)
+this repository is derived from (see [Derivative &amp; Upstream](#-derivative--upstream)).
+See [LICENSE](LICENSE) for full terms.
