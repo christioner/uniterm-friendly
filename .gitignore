@@ -27,6 +27,9 @@ __debug*
 bin/
 dist/
 
+# Locally produced release packages (green/portable zips, installers)
+release/
+
 # Wails v3 generated bindings + task runner cache
 frontend/bindings/
 .task/
