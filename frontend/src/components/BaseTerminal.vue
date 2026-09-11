@@ -808,6 +808,14 @@ function writeTerminalInput(data: string, inAlternateScreen: boolean) {
 }
 
 function handleTerminalKey(e: KeyboardEvent): boolean {
+  // Let Ctrl+Space pass through untouched: users rely on it for OS-level
+  // launchers (e.g. PowerToys Run / Alfred). xterm would otherwise consume it
+  // as terminal input (NUL); returning false prevents that swallow so the key
+  // reaches the system instead of the PTY.
+  if (e.type === 'keydown' && e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && (e.key === ' ' || e.code === 'Space')) {
+    return false
+  }
+
   // Check global shortcuts first (Ctrl+Shift+/Alt+ combos)
   if (e.type === 'keydown' && !onTerminalKey(e)) return false
 

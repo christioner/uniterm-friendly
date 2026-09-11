@@ -41,6 +41,11 @@ export default defineConfig({
     }
   },
   server: {
+    // Bind IPv4 loopback explicitly. On some machines/Node versions vite's
+    // default "localhost" resolves to ::1 (IPv6) only, while the Wails
+    // WebView2 dev proxy dials 127.0.0.1 (IPv4) — causing repeated connection
+    // refused and a blank window in `wails3 dev`.
+    host: '127.0.0.1',
     port: 34115,
     strictPort: true
   }

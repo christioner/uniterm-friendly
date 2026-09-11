@@ -136,8 +136,13 @@ func versionGreater(latest, current string) bool {
 }
 
 func shouldUpdate(current, latest string) bool {
-	if current == "dev" {
-		return true
+	// Dev builds report "dev" (or "dev-abc123" from CI) as the version, since
+	// main.Version stays "dev" until ldflags inject a real tag. Treating dev as
+	// "always outdated" is wrong: it makes every dev session show a spurious
+	// "发现新版本" nag even when the user is on the current code. A dev build is
+	// not a released version, so it never has an update to offer.
+	if strings.HasPrefix(current, "dev") {
+		return false
 	}
 	return versionGreater(latest, current)
 }
