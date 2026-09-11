@@ -146,6 +146,7 @@ export type ShortcutAction =
   | 'navigatePrev' | 'navigateNext'
   | 'duplicateSession'
   | 'terminalSearch'
+  | 'quickConnect'
   | 'openSettings'
   | 'copy'
   | 'paste'
@@ -177,6 +178,7 @@ export const SHORTCUT_LABELS: Record<ShortcutAction, string> = {
   lockAI: 'shortcut.lockAI',
   duplicateSession: 'shortcut.duplicateSession',
   terminalSearch: 'shortcut.terminalSearch',
+  quickConnect: 'shortcut.quickConnect',
   openSettings: 'shortcut.openSettings',
   copy: 'shortcut.copy',
   paste: 'shortcut.paste',
@@ -199,6 +201,7 @@ export const DEFAULT_KEYBOARD: KeyboardSettings = {
   lockAI: { ctrl: true, shift: true, alt: false, key: 'l' },
   duplicateSession: { ctrl: true, shift: true, alt: false, key: 'd' },
   terminalSearch: { ctrl: true, shift: true, alt: false, key: 'f' },
+  quickConnect: { ctrl: true, shift: false, alt: false, key: 'e' },
   openSettings: { ctrl: true, shift: false, alt: false, key: ',' },
   copy: { ctrl: true, shift: true, alt: false, key: 'c' },
   paste: { ctrl: true, shift: true, alt: false, key: 'v' },

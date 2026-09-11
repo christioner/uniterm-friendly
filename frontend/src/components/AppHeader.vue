@@ -23,6 +23,13 @@
       />
     </div>
 
+    <!-- Quick open connection search (Ctrl+E focuses this) -->
+    <ConnectionSearch
+      ref="searchRef"
+      @open="(c: any) => emit('quick-open', c)"
+      :title="t('header.quickSearch')"
+    />
+
     <!-- AI button -->
     <button class="header-btn" @click="emit('toggle-ai')" :title="t('header.ai') + shortcutSuffix('focusAI')">
       <el-icon><Bot :size="14" /></el-icon>
@@ -119,6 +126,7 @@ import Menu from './Menu.vue'
 import MenuItem from './MenuItem.vue'
 import MenuSubmenu from './MenuSubmenu.vue'
 import MenuDivider from './MenuDivider.vue'
+import ConnectionSearch from './ConnectionSearch.vue'
 import { Application, Screens, System, Window } from '@wailsio/runtime'
 import { SaveWindowState } from '../../bindings/github.com/ys-ll/uniterm/app'
 
@@ -215,7 +223,15 @@ const emit = defineEmits<{
   'close-tab-batch': [ids: string[]]
   'toggle-ai-lock': [panelId: string]
   'tab-dragstart': [e: DragEvent, tabId: string]
+  'quick-open': [config: any]
 }>()
+
+// Quick-open connection search box (focused by the quickConnect shortcut).
+const searchRef = ref<InstanceType<typeof ConnectionSearch> | null>(null)
+function focusConnectionSearch() {
+  searchRef.value?.focus()
+}
+defineExpose({ focusConnectionSearch })
 
 // Detect synchronously so the layout is correct on first render,
 // even if the Wails System.Environment() call is slow or fails.
