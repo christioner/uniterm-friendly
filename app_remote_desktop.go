@@ -6,6 +6,15 @@ import (
 	"github.com/ys-ll/uniterm/backend/session"
 )
 
+// ConnectRDP launches the system Remote Desktop (mstsc.exe) with a generated
+// .rdp profile so the connection auto-logs on under NLA using the stored
+// password. The embedded MS ActiveX control cannot auto-logon silently under
+// NLA/CredSSP, so RDP connections are delegated to mstsc, which natively honors
+// the saved credential.
+func (a *App) ConnectRDP(config session.ConnectionConfig) error {
+	return session.LaunchRDP(config)
+}
+
 func (a *App) RDPSetPosition(sessionID string, x, y, w, h int) error {
 	if a.sessionManager == nil {
 		return fmt.Errorf("session manager not initialized")

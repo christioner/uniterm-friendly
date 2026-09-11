@@ -363,9 +363,6 @@ func (s *RDPSession) Connect(config ConnectionConfig) error {
 		port = 3389
 	}
 
-	// NonScriptable.ClearTextPassword BEFORE AdvancedSettings.
-	s.configureNonScriptable(config.Password)
-
 	dispatch.PutProperty("Server", config.Host)
 	// The explicit RdpDomain field wins. As a fallback, the username may
 	// carry a Windows login name of the form "DOMAIN\user" (or
@@ -412,7 +409,17 @@ func (s *RDPSession) Connect(config ConnectionConfig) error {
 				adv.PutProperty("SmartSizing", true)
 			}
 			if config.Password != "" {
-				adv.PutProperty("ClearTextPassword", config.Password)
+				// Under NLA/CredSSP the legacy AdvancedSettings.ClearTextPassword is
+				// ignored or conflicting with the credential fed through
+				// IMsTscNonScriptable.ClearTextPassword (see configureNonScriptable);
+				// setting both makes the control still show the Windows credential
+				// prompt. With NLA the password must travel via the NonScriptable
+				// interface, so only keep the AdvancedSettings clear-text path for the
+				// (legacy, non-NLA) case where it is the correct automatic-logon
+				// mechanism.
+				if !config.RdpEnableNLA {
+					adv.PutProperty("ClearTextPassword", config.Password)
+				}
 			}
 			adv.Release()
 		}
@@ -474,6 +481,17 @@ func (s *RDPSession) Connect(config ConnectionConfig) error {
 			close(stopDismiss)
 		}()
 	}()
+
+	// NLA/CredSSP auto-logon is only honored via the Windows Credential Manager
+	// (TERMSRV/<host>) — the control's own ClearTextPassword is ignored under
+	// NLA, and feeding it can make CredSSP prefer (and fail on) a password it
+	// cannot use instead of reading the vault. So under NLA we write the vault
+	// credential and do NOT inject ClearTextPassword; the legacy non-NLA path
+	// keeps using IMsTscNonScriptable.ClearTextPassword instead.
+	rdpSyncCredential(config.Host, domain, user, config.Password)
+	if !config.RdpEnableNLA {
+		s.configureNonScriptable(config.Password)
+	}
 
 	_, err = dispatch.CallMethod("Connect")
 	if err != nil {

@@ -41,6 +41,10 @@ export interface ConnectionConfig {
   // "DOMAIN\user" prefix in user is used as a fallback.
   rdpDomain?: string
   rdpAdminSession?: boolean
+  // RDP connection method: undefined/'' = embedded ActiveX in the uniTerm tab;
+  // 'mstsc' = delegate to the system mstsc.exe (external window, reliable
+  // auto-logon under NLA/CredSSP).
+  rdpMode?: string
   // Local terminal shell path (for WSL, `wsl://<distro>` carries the distro)
   shellPath?: string
   // Working directory for local terminal (defaults to user home)

@@ -103,6 +103,12 @@
               </div>
             </el-form-item>
             <template v-if="form.type === 'rdp' && isWindows">
+              <el-form-item :label="t('conn.rdpMode')">
+                <el-select v-model="form.rdpMode" style="width: 100%" :placeholder="t('conn.rdpModePlaceholder')">
+                  <el-option value="mstsc" :label="t('conn.rdpModeMstsc')" />
+                  <el-option value="embedded" :label="t('conn.rdpModeEmbedded')" />
+                </el-select>
+              </el-form-item>
               <el-form-item :label="t('conn.rdpEnableNLA')">
                 <el-select v-model="form.rdpEnableNLA" style="width: 100%">
                   <el-option :value="true" :label="t('conn.rdpEnableNLAOn')" />
@@ -110,7 +116,7 @@
                 </el-select>
               </el-form-item>
             </template>
-            <el-form-item v-if="form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'tcp' && form.type !== 'k8s' && form.type !== 'container' && form.authType !== 'identity' && ((form.authType === 'password' && form.type !== 'rdp') || (form.type === 'rdp' && !form.rdpEnableNLA) || form.type === 'vnc' || form.type === 'spice' || form.type === 'database' || form.type === 'telnet' || form.type === 'ftp' || form.type === 'smb' || form.type === 'webdav' || form.type === 's3') && !(form.type === 'database' && form.dbType === 'rqlite')" :label="form.type === 's3' ? 'Secret Key' : (isEsApiKey ? t('conn.esApiKey') : t('conn.password'))">
+            <el-form-item v-if="form.type !== 'local' && form.type !== 'wsl' && form.type !== 'serial' && form.type !== 'tcp' && form.type !== 'k8s' && form.type !== 'container' && form.authType !== 'identity' && ((form.authType === 'password' && form.type !== 'rdp') || form.type === 'rdp' || form.type === 'vnc' || form.type === 'spice' || form.type === 'database' || form.type === 'telnet' || form.type === 'ftp' || form.type === 'smb' || form.type === 'webdav' || form.type === 's3') && !(form.type === 'database' && form.dbType === 'rqlite')" :label="form.type === 's3' ? 'Secret Key' : (isEsApiKey ? t('conn.esApiKey') : t('conn.password'))">
               <el-input v-model="form.password" type="password" show-password :key="passwordInputKey" :placeholder="form.type === 's3' ? 'Secret Access Key' : (isEsApiKey ? t('conn.esApiKeyPlaceholder') : '')" />
             </el-form-item>
             <el-form-item v-if="form.type === 'rdp' && isWindows" :label="t('conn.rdpAdminSession')">
@@ -997,6 +1003,7 @@ const form = reactive<ConnectionConfig>({
   rdpEnableNLA: true,
   rdpDomain: '',
   rdpAdminSession: false,
+  rdpMode: 'mstsc',
   dbType: '',
   dbName: '',
   dbParams: '',
@@ -1220,6 +1227,8 @@ watch(() => props.editConfig, (config) => {
     // Existing connections without the field default to NLA off (old behavior).
     form.rdpEnableNLA = config.rdpEnableNLA ?? false
     form.rdpAdminSession = config.rdpAdminSession ?? false
+    // Existing connections without the field keep the embedded ActiveX method.
+    form.rdpMode = config.rdpMode || 'embedded'
     form.x11Forwarding = config.x11Forwarding ?? false
     // Existing SSH connections without the field default to SFTP (old behavior).
     form.fileTransferProto = config.fileTransferProto ?? 'sftp'
@@ -1352,6 +1361,7 @@ function resetForm() {
   form.rdpEnableNLA = true
   form.rdpDomain = ''
   form.rdpAdminSession = false
+  form.rdpMode = 'mstsc'
   form.dbType = ''
   form.dbName = ''
   form.dbParams = ''

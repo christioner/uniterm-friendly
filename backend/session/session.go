@@ -67,6 +67,11 @@ type ConnectionConfig struct {
 	// equivalent of "mstsc /admin". Mapped to the ActiveX
 	// IMsRdpClientAdvancedSettings8::ConnectToAdministerServer property.
 	RdpAdminSession bool `json:"rdpAdminSession"`
+	// RdpMode selects how RDP connects. "" (default) uses the embedded MS
+	// ActiveX control rendered inside the uniTerm tab; "mstsc" delegates to the
+	// system mstsc.exe (a separate Remote Desktop window), which is the only
+	// way to auto-logon reliably under NLA/CredSSP.
+	RdpMode string `json:"rdpMode,omitempty"`
 	// Local terminal shell path
 	ShellPath string `json:"shellPath,omitempty"`
 	// Working directory for local terminal (defaults to user home directory if empty)

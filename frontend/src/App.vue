@@ -3,6 +3,7 @@
   <div class="app-container" :class="{ 'has-bg': bgVisible }">
     <div v-if="bgVisible" class="app-bg" :style="bgStyle"></div>
     <AppHeader
+      ref="headerRef"
       @toggle-ai="aiStore.toggle"
       @toggle-sidebar="sidebarVisible = !sidebarVisible"
       @open-settings="openSettings"
@@ -10,6 +11,7 @@
       @close-tab-batch="closeTabBatch"
       @toggle-ai-lock="onToggleAiLock"
       @tab-dragstart="onTabDragStart"
+      @quick-open="onQuickOpen"
     />
     <div class="main-content">
       <Sidebar ref="sidebarRef" :visible="sidebarVisible" @toggle="sidebarVisible = !sidebarVisible" @connect="onConnect" @connect-only="onConnectOnly" @connect-serial="showSerialDialog = true" @connect-sftp="(c: any) => { const p = tabStore.activeTab; onConnectSftp(c, p?.type === 'start' ? p : undefined) }" @connect-wsl-file="(c: any) => { const p = tabStore.activeTab; onConnectWslFile(c, p?.type === 'start' ? p : undefined) }" @connect-ftp="(c: any) => { const p = tabStore.activeTab; onConnectFtp(c, p?.type === 'start' ? p : undefined) }" @connect-smb="(c: any) => { const p = tabStore.activeTab; onConnectSmb(c, p?.type === 'start' ? p : undefined) }" @connect-webdav="(c: any) => { const p = tabStore.activeTab; onConnectWebdav(c, p?.type === 'start' ? p : undefined) }" @connect-s3="(c: any) => { const p = tabStore.activeTab; onConnectS3(c, p?.type === 'start' ? p : undefined) }" @connect-rdp="(c: any) => { const p = tabStore.activeTab; onConnectRDP(c, p?.type === 'start' ? p : undefined) }" @connect-vnc="(c: any) => { const p = tabStore.activeTab; onConnectVNC(c, p?.type === 'start' ? p : undefined) }" @connect-spice="(c: any) => { const p = tabStore.activeTab; onConnectSPICE(c, p?.type === 'start' ? p : undefined) }" @connect-x11-desktop="(c: any) => { const p = tabStore.activeTab; onConnectX11Desktop(c, p?.type === 'start' ? p : undefined) }" @connect-d-b="(c: any) => { const p = tabStore.activeTab; onConnectDB(c, p?.type === 'start' ? p : undefined) }" @connect-monitor="(c: any) => { const p = tabStore.activeTab; onConnectMonitor(c, p?.type === 'start' ? p : undefined) }" @connect-k8s="(c: any) => { const p = tabStore.activeTab; onConnectK8s(c, p?.type === 'start' ? p : undefined) }" />
@@ -211,7 +213,7 @@ import { focusPanelTerminal, installTerminalFocusRestore } from './composables/u
 import { useDuplicateSession } from './composables/useDuplicateSession'
 import type { ShortcutAction } from './types/settings'
 import { useI18n } from './i18n'
-import { CreateSession, CloseSession, RDPHide, RDPShow, RDPInvalidate, RDPSnapshot, RDPSetPosition, RecordRecentConnection, GetPlatform, GetBackgroundImage, SessionStart, RelaunchApp } from '../bindings/github.com/ys-ll/uniterm/app'
+import { CreateSession, CloseSession, ConnectRDP, RDPHide, RDPShow, RDPInvalidate, RDPSnapshot, RDPSetPosition, RecordRecentConnection, GetPlatform, GetBackgroundImage, SessionStart, RelaunchApp } from '../bindings/github.com/ys-ll/uniterm/app'
 import { getTerminalSize, waitForTerminalSize } from './services/terminalManager'
 import { msg } from './services/message'
 import type { ConnectionConfig } from './types/session'
@@ -492,6 +494,7 @@ const showConnectionForm = ref(false)
 const sidebarVisible = ref(false)
 const sidebarRef = ref<any>(null)
 const aiSidebarRef = ref<any>(null)
+const headerRef = ref<InstanceType<typeof AppHeader> | null>(null)
 
 
 // Input context menu state
@@ -890,11 +893,17 @@ function navigatePanel(dir: number) {
   tabStore.setActivePanel(t.id, next)
 }
 
+// Quick-open a connection picked from the header search box.
+function onQuickOpen(config: ConnectionConfig) {
+  onConnect(config)
+}
+
 // ── Keyboard shortcut handlers (module-level so watch can access them) ──
 const actionHandlers: Record<ShortcutAction, () => void> = {
   nextTab: () => tabStore.nextTab(),
   prevTab: () => tabStore.prevTab(),
   newConnection: () => { tabStore.createStartTab() },
+  quickConnect: () => { nextTick(() => headerRef.value?.focusConnectionSearch()) },
   toggleSidebar: () => {
     if (sidebarVisible.value) {
       sidebarVisible.value = false
@@ -1749,6 +1758,21 @@ async function onConnectRDP(config: ConnectionConfig, prevStart?: any, persist =
   if (!resolved) return
   config = resolved
 
+  // "mstsc" mode delegates to the system Remote Desktop (external window): it
+  // is the only reliable way to auto-sign-in under NLA/CredSSP. No embedded
+  // tab/session is created.
+  if (config.rdpMode === 'mstsc') {
+    if (persist) RecordRecentConnection(config.id)
+    try {
+      await ConnectRDP(config)
+    } catch (e) {
+      console.error('Failed to launch RDP:', e)
+      msg.error(String(e))
+    }
+    return
+  }
+
+  // Default: render RDP inside the uniTerm tab via the embedded ActiveX.
   const displayTitle = config.name || `${config.user}@${config.host}`
 
   const panel = panelStore.createPanel(config, 'rdp')
