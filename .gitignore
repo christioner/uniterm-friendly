@@ -58,6 +58,8 @@ Thumbs.db
 
 # Go build artifacts
 *.exe~
+# bare `go build .` output (the wails3 pipeline builds into bin/)
+/uniTerm
 *.test
 
 # Development plugins (VcXsrv)
