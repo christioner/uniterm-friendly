@@ -66,6 +66,10 @@ type ConnectionConfig struct {
 	RdpFixedHeight int  `json:"rdpFixedHeight,omitempty"`
 	RdpSmartSizing bool `json:"rdpSmartSizing"`
 	RdpEnableNLA   bool `json:"rdpEnableNLA"`
+	// RdpFullscreen starts the connection in full-screen mode. Default windowed:
+	// when false (or unset) the connection opens as a normal window, using
+	// RdpFixedWidth/Height when set and a sane default size otherwise.
+	RdpFullscreen bool `json:"rdpFullscreen"`
 	// RdpDomain is the Windows domain (or computer name for local accounts)
 	// sent to the RDP ActiveX control's Domain property. When empty, a
 	// "DOMAIN\user" prefix in User is used as a fallback, mirroring the

@@ -38,6 +38,8 @@ export interface ConnectionConfig {
   rdpFixedHeight?: number
   rdpSmartSizing?: boolean
   rdpEnableNLA?: boolean
+  // Start the RDP connection in full-screen (default windowed).
+  rdpFullscreen?: boolean
   // Windows domain (or computer name for local accounts). When empty, a
   // "DOMAIN\user" prefix in user is used as a fallback.
   rdpDomain?: string

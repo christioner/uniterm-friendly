@@ -409,6 +409,9 @@
                   <el-input-number v-model="rdpCustomHeight" :min="240" :max="4320" :step="8" controls-position="right" />
                 </div>
               </el-form-item>
+              <el-form-item :label="t('conn.rdpFullscreen')">
+                <el-switch v-model="form.rdpFullscreen" />
+              </el-form-item>
               <el-form-item :label="t('conn.rdpSmartSizing')">
                 <el-switch v-model="form.rdpSmartSizing" />
               </el-form-item>
@@ -1232,6 +1235,7 @@ watch(() => props.editConfig, (config) => {
     }
     // Existing connections without the field default to NLA off (old behavior).
     form.rdpEnableNLA = config.rdpEnableNLA ?? false
+    form.rdpFullscreen = config.rdpFullscreen ?? false
     form.rdpAdminSession = config.rdpAdminSession ?? false
     // Existing connections without the field keep the embedded ActiveX method.
     form.rdpMode = config.rdpMode || 'embedded'
@@ -1363,6 +1367,7 @@ function resetForm() {
   form.rdpFixedWidth = -1
   form.rdpFixedHeight = -1
   form.rdpSmartSizing = false
+  form.rdpFullscreen = false
   form.rdpEnableNLA = true
   form.rdpDomain = ''
   form.rdpAdminSession = false

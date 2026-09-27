@@ -3,6 +3,7 @@ import { SaveTerminalHistory, LoadTerminalHistory } from '../../bindings/github.
 import { chat } from '../services/llm'
 import { useQuickCommandStore } from '../stores/quickCommandStore'
 import { useI18n } from '../i18n'
+import type { PasswordAccount } from '../types/passwordPool'
 
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -18,11 +19,12 @@ export interface HistoryEntry {
 }
 
 export interface SuggestionItem {
-  type: 'history' | 'quick-command' | 'ai-preview' | 'ai-result'
+  type: 'history' | 'quick-command' | 'ai-preview' | 'ai-result' | 'password'
   label: string
   value: string
   icon?: string
   description?: string
+  username?: string
   matchIndices?: number[]
   commandMatchIndices?: number[]  // For quick-command items when match is on command text
   id?: string  // For history items only
@@ -377,6 +379,24 @@ export function useSuggestions() {
     }, 150)
   }
 
+  // Show password-pool quick picks at the cursor (invoked when the terminal
+  // enters echo-off password mode). Each account maps to a pickable item whose
+  // value is the account id, with a trailing entry that opens the manager.
+  function showPasswordPool(accounts: PasswordAccount[]) {
+    const items: SuggestionItem[] = accounts.map(a => ({
+      type: 'password',
+      label: a.name,
+      value: a.id,
+      description: t('passwordPool.title'),
+      username: a.username || '',
+    }))
+    items.push({ type: 'password', label: t('passwordPool.manage'), value: '__manage', description: '' })
+    state.value.items = items
+    state.value.selectedIndex = accounts.length > 0 ? 0 : -1
+    state.value.visible = items.length > 0
+    state.value.loading = false
+  }
+
   function selectNext() {
     if (state.value.items.length === 0) return
     // Cancel any pending suggestion update to prevent the debounced
@@ -444,6 +464,7 @@ export function useSuggestions() {
     removeHistoryCommandsById,
     updateSuggestions,
     generateAISuggestion,
+    showPasswordPool,
     selectNext,
     selectPrev,
     getSelectedItem,

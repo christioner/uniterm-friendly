@@ -790,6 +790,19 @@
       </div>
 
       <!-- 代理 -->
+      <!-- 密码池 -->
+      <div v-if="settingsStore.activeCategory === 'password'" class="settings-section">
+        <h2 class="section-title">{{ t('settings.passwordPool') }}</h2>
+        <p class="section-desc">{{ t('passwordPool.manageDesc') }}</p>
+        <PasswordPoolList ref="settingsPoolListRef" @add="openPoolAdd" @edit="openPoolEdit" />
+        <PasswordAddEditDialog
+          :visible="poolAddVisible"
+          :account="poolEditing"
+          @update:visible="(v: boolean) => (poolAddVisible = v)"
+          @saved="reloadSettingsPool"
+        />
+      </div>
+
       <div v-if="settingsStore.activeCategory === 'proxies'" class="settings-section">
         <h2 class="section-title">{{ t('settings.proxies') }}</h2>
         <p class="section-desc">{{ t('settings.proxiesDesc') }}</p>
@@ -1253,7 +1266,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, computed, onMounted } from 'vue'
-import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe, Keyboard, Plus, BookOpen, Wrench, FolderOpen, Key, Network, ArrowRightLeft } from '@lucide/vue'
+import { Settings, Monitor, MessageCircleMore, Info, RefreshCw, Pencil, Trash2, Globe, Keyboard, Plus, BookOpen, Wrench, FolderOpen, Key, Network, ArrowRightLeft, Lock } from '@lucide/vue'
 import { msg } from '../services/message'
 import { FetchModels, ChatCompletion, GetPlatform, GetAllFonts, GetDefaultSessionLogDir, OpenDirectoryDialog, OpenFileDialogFiltered, SetBackgroundImage, ClearBackgroundImage, GetBackgroundImage, RelaunchApp, ListExternalEditors } from '../../bindings/github.com/ys-ll/uniterm/app'
 import { useSettingsStore } from '../stores/settingsStore'
@@ -1280,6 +1293,9 @@ import DataDirDialog from './DataDirDialog.vue'
 import IdentityEditDialog from './IdentityEditDialog.vue'
 import ProxyEditDialog from './ProxyEditDialog.vue'
 import TunnelEditDialog from './TunnelEditDialog.vue'
+import PasswordPoolList from './PasswordPoolList.vue'
+import PasswordAddEditDialog from './PasswordAddEditDialog.vue'
+import type { PasswordAccount } from '../types/passwordPool'
 import { useCredentialStore } from '../stores/credentialStore'
 import { useIdentityStore } from '../stores/identityStore'
 import { useProxyStore } from '../stores/proxyStore'
@@ -1330,6 +1346,14 @@ function onDataDirChange(restart: boolean) {
   }
 }
 async function openChangePassword() { showChangePassword.value = true }
+
+// Password pool management — list embedded in the settings tab, add/edit via dialog.
+const settingsPoolListRef = ref<InstanceType<typeof PasswordPoolList> | null>(null)
+const poolAddVisible = ref(false)
+const poolEditing = ref<PasswordAccount | null>(null)
+function openPoolAdd() { poolEditing.value = null; poolAddVisible.value = true }
+function openPoolEdit(a: PasswordAccount) { poolEditing.value = a; poolAddVisible.value = true }
+async function reloadSettingsPool() { settingsPoolListRef.value?.load() }
 
 // Encryption-mode dropdown. The select mirrors the live mode; choosing a
 // different option reverts immediately and opens the matching directional
@@ -1894,6 +1918,7 @@ const categories = computed(() => {
     { key: 'ai', label: t('settings.ai'), icon: MessageCircleMore },
     { key: 'skills', label: t('settings.skillsAndCommands'), icon: Wrench },
     { key: 'identities', label: t('settings.identities'), icon: Key },
+    { key: 'password', label: t('settings.passwordPool'), icon: Lock },
     { key: 'proxies', label: t('settings.proxies'), icon: Network },
     { key: 'tunnels', label: t('settings.tunnels'), icon: ArrowRightLeft },
     { key: 'sync', label: t('settings.sync'), icon: RefreshCw },

@@ -22,6 +22,7 @@ type utmFile struct {
 	Version   int     `json:"version"`
 	Encrypted bool    `json:"encrypted"`
 	KDF       *utmKDF `json:"kdf,omitempty"`
+	Sync      *SyncFileConfig `json:"sync,omitempty"`
 	session.ConnectionStoreData
 }
 
@@ -115,5 +116,5 @@ func parseUniterm(data []byte, opts ParseOptions) (*ImportResult, error) {
 		}
 		connections[i] = c
 	}
-	return &ImportResult{Groups: groups, Connections: connections}, nil
+	return &ImportResult{Groups: groups, Connections: connections, Sync: f.Sync}, nil
 }

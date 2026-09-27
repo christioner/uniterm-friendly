@@ -46,6 +46,7 @@ type App struct {
 	connectionStore      *store.ConnectionStore
 	aiSessionStore       *store.AISessionStore
 	settingsStore        *store.SettingsStore
+	keyboardStore        *store.KeyboardStore
 	aiConfigStore        *store.AIConfigStore
 	identityStore        *store.IdentityStore
 	proxyStore           *store.ProxyStore
@@ -57,6 +58,7 @@ type App struct {
 	terminalHistoryStore *store.TerminalHistoryStore
 	recentStore          *store.RecentStore
 	favoriteStore        *store.FavoriteStore
+	passwordPoolStore    *store.PasswordPoolStore
 	syncService          *sync.SyncService
 	tunnelService        *session.TunnelService
 	mainHwnd             uintptr
@@ -266,6 +268,14 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 		}
 	}
 
+	kbs, err := store.NewKeyboardStore(dataDir)
+	if err != nil {
+		log.Writef("Failed to init keyboard store: %v", err)
+		a.sendStartupErr(fmt.Errorf("keyboard store: %w", err))
+	} else {
+		a.keyboardStore = kbs
+	}
+
 	acs, err := store.NewAIConfigStore(dataDir)
 	if err != nil {
 		log.Writef("Failed to init AI config store: %v", err)
@@ -280,6 +290,14 @@ func (a *App) initStores(dataDir string, upgrade bool) {
 		a.sendStartupErr(fmt.Errorf("identity store: %w", err))
 	} else {
 		a.identityStore = is
+	}
+
+	pps, err := store.NewPasswordPoolStore(dataDir)
+	if err != nil {
+		log.Writef("Failed to init password pool store: %v", err)
+		a.sendStartupErr(fmt.Errorf("password pool store: %w", err))
+	} else {
+		a.passwordPoolStore = pps
 	}
 
 	ps, err := store.NewProxyStore(dataDir)
@@ -452,6 +470,9 @@ func (a *App) initCredentials(dataDir string, upgrade bool) {
 	}
 	if a.identityStore != nil {
 		a.identityStore.SetPasswordStore(cred)
+	}
+	if a.passwordPoolStore != nil {
+		a.passwordPoolStore.SetPasswordStore(cred)
 	}
 	if a.proxyStore != nil {
 		a.proxyStore.SetPasswordStore(cred)
@@ -774,6 +795,27 @@ func (a *App) ExportConnections(destPath, password string) error {
 	if err != nil {
 		return err
 	}
+
+	// Embed the cloud-sync repo config (URL/branch/username/autoSync — no
+	// credentials/tokens) so a fresh install can restore the sync source when
+	// the file is imported.
+	if a.syncService != nil {
+		var m map[string]any
+		if json.Unmarshal(out, &m) == nil {
+			if cfg, cerr := a.syncService.GetConfig(); cerr == nil && cfg.RepoURL != "" {
+				m["sync"] = map[string]any{
+					"repoUrl":  cfg.RepoURL,
+					"branch":   cfg.Branch,
+					"username": cfg.Username,
+					"autoSync": cfg.AutoSync,
+				}
+				if b, merr := json.MarshalIndent(m, "", "  "); merr == nil {
+					out = b
+				}
+			}
+		}
+	}
+
 	return os.WriteFile(destPath, out, 0600)
 }
 

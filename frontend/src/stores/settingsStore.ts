@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { AppSettings, AIModelConfig, CustomTerminalTheme } from '../types/settings'
 import { DEFAULT_SETTINGS, normalizeKeyBindings } from '../types/settings'
-import { SaveSettings, LoadSettings, GetAvailableShells, SetDefaultSessionLogDir } from '../../bindings/github.com/ys-ll/uniterm/app'
+import { SaveSettings, LoadSettings, GetAvailableShells, SetDefaultSessionLogDir, LoadKeyboardSettings, SaveKeyboardSettings } from '../../bindings/github.com/ys-ll/uniterm/app'
 import { Events } from '@wailsio/runtime'
 import { setLocale } from '../i18n'
 import { useAIConfigStore } from './aiConfigStore'
@@ -105,6 +105,15 @@ export const useSettingsStore = defineStore('settings', () => {
     } finally {
       loaded.value = true
     }
+
+    // Keyboard shortcuts come from a synced, independent file (keyboard.json).
+    try {
+      const kb = await LoadKeyboardSettings()
+      if (kb) settings.value.keyboard = normalizeKeyBindings(kb as any)
+    } catch {
+      // keep defaults
+    }
+
     await useAIConfigStore().load()
     recomposeAi()
     lastSavedAiJson = JSON.stringify({ maxTurns: settings.value.ai.maxTurns, models: settings.value.ai.models })
@@ -135,6 +144,12 @@ export const useSettingsStore = defineStore('settings', () => {
       }
     } catch {
       // use defaults
+    }
+    try {
+      const kb = await LoadKeyboardSettings()
+      if (kb) settings.value.keyboard = normalizeKeyBindings(kb as any)
+    } catch {
+      // keep defaults
     }
     await useAIConfigStore().load()
     recomposeAi()
@@ -260,6 +275,13 @@ export const useSettingsStore = defineStore('settings', () => {
 
   // Auto-save when AI models change
   watch(() => settings.value.ai, save, { deep: true })
+  // Keyboard shortcuts live in their own synced file; persist changes there
+  // (debounced) so they follow the user across machines.
+  let kbSaveTimer: ReturnType<typeof setTimeout> | null = null
+  watch(() => settings.value.keyboard, (kb) => {
+    if (kbSaveTimer) clearTimeout(kbSaveTimer)
+    kbSaveTimer = setTimeout(() => { SaveKeyboardSettings(kb as any).catch(() => {}) }, 300)
+  }, { deep: true })
 
   // Apply theme when it changes
   watch(() => settings.value.theme, applyTheme)

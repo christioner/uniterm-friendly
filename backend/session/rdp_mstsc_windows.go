@@ -54,10 +54,10 @@ func buildRDPFile(c ConnectionConfig) string {
 		"authentication level:i:2",
 	}
 
-	// Display settings from the connection form. -1 (or unset) means fullscreen,
-	// mirroring rdpFixedWidth==-1 in the embedded path; a positive value is a
-	// fixed windowed resolution.
-	if c.RdpFixedWidth == -1 || c.RdpFixedHeight == -1 {
+	// Display settings from the connection form. Full-screen is opt-in
+	// (RdpFullscreen); otherwise open a normal window sized to
+	// RdpFixedWidth/Height when set, falling back to a sane default.
+	if c.RdpFullscreen {
 		lines = append(lines, "screen mode id:i:2") // full screen
 	} else {
 		w, h := c.RdpFixedWidth, c.RdpFixedHeight
@@ -71,6 +71,9 @@ func buildRDPFile(c ConnectionConfig) string {
 			"screen mode id:i:1", // window
 			fmt.Sprintf("desktopwidth:i:%d", w),
 			fmt.Sprintf("desktopheight:i:%d", h),
+			// Force a normal windowed geometry so mstsc doesn't honor its
+			// remembered maximized/fullscreen state from a previous session.
+			fmt.Sprintf("winposstr:s:0,1,%d,%d,%d,%d", 64, 64, 64+w, 64+h),
 		)
 	}
 	if c.RdpSmartSizing {

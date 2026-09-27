@@ -58,6 +58,8 @@ func EncryptConfigFiles(srcDir, destDir string, key []byte, kc *Keychain, ps Pas
 			err = encryptIdentitiesFile(src, dest, key, ps)
 		case "proxies.json":
 			err = encryptProxiesFile(src, dest, key, ps)
+		case "passwords.json":
+			err = encryptPasswordPoolFile(src, dest, key, ps)
 		default:
 			err = encryptGenericFile(src, dest, key)
 		}
@@ -163,6 +165,75 @@ func encryptAIConfigFile(src, dest string, key []byte, kc *Keychain, ps Password
 	return os.WriteFile(dest, []byte(encoded), 0600)
 }
 
+// encryptPasswordPoolFile encrypts passwords.json for upload: any enc:v1:
+// Password field on an account is decrypted back to plaintext so the sync key
+// is the sole protector of the file in the repo (matches identities/proxies).
+func encryptPasswordPoolFile(src, dest string, key []byte, ps PasswordStore) error {
+	data, err := readJSONFile(src)
+	if err != nil {
+		return err
+	}
+
+	if ps != nil {
+		var wrapper struct {
+			Accounts []map[string]interface{} `json:"accounts"`
+		}
+		if err := json.Unmarshal(data, &wrapper); err != nil {
+			return fmt.Errorf("parse password pool: %w", err)
+		}
+		for _, acct := range wrapper.Accounts {
+			if pw, ok := acct["password"].(string); ok && isEncryptedField(pw) {
+				if pt, err := ps.Decrypt(pw); err == nil {
+					acct["password"] = pt
+				}
+			}
+		}
+		data, _ = json.MarshalIndent(wrapper, "", "  ")
+	}
+
+	encoded, err := encryptBytes(data, key)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dest, []byte(encoded), 0600)
+}
+
+// decryptPasswordPoolFile decrypts passwords.json from the repo, re-encrypting
+// any plaintext account Password back to enc:v1: under the local credential key.
+func decryptPasswordPoolFile(src, dest string, key []byte, ps PasswordStore) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return os.WriteFile(dest, []byte(`{}`), 0600)
+		}
+		return err
+	}
+
+	plaintext, err := decryptBytes(string(data), key)
+	if err != nil {
+		return fmt.Errorf("decrypt password pool: %w", err)
+	}
+
+	if ps != nil {
+		var wrapper struct {
+			Accounts []map[string]interface{} `json:"accounts"`
+		}
+		if err := json.Unmarshal(plaintext, &wrapper); err != nil {
+			return fmt.Errorf("parse password pool: %w", err)
+		}
+		for _, acct := range wrapper.Accounts {
+			if pw, ok := acct["password"].(string); ok && pw != "" && !isEncryptedField(pw) {
+				if enc, err := ps.Encrypt(pw); err == nil {
+					acct["password"] = enc
+				}
+			}
+		}
+		plaintext, _ = json.MarshalIndent(wrapper, "", "  ")
+	}
+
+	return os.WriteFile(dest, plaintext, 0600)
+}
+
 // encryptIdentitiesFile encrypts identities.json, normalizing any enc:v1:
 // Password field to plaintext for upload.
 func encryptIdentitiesFile(src, dest string, key []byte, ps PasswordStore) error {
@@ -254,6 +325,8 @@ func DecryptConfigFiles(srcDir, destDir string, key []byte, ps PasswordStore) er
 			err = decryptIdentitiesFile(src, dest, key, ps)
 		case "proxies.json":
 			err = decryptProxiesFile(src, dest, key, ps)
+		case "passwords.json":
+			err = decryptPasswordPoolFile(src, dest, key, ps)
 		default:
 			err = decryptGenericFile(src, dest, key)
 		}

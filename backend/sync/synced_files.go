@@ -23,4 +23,6 @@ var syncedFiles = []string{
 	"tunnels.json",
 	"identities.json",
 	"proxies.json",
+	"passwords.json",
+	"keyboard.json",
 }

@@ -115,6 +115,9 @@
 
     <!-- Screen preview on scrollbar hover (issue #729) -->
     <TerminalScreenPreview :session-id="props.sessionId || ''" />
+
+    <!-- Password pool manager -->
+    <PasswordPoolManager :visible="showPoolDialog" @update:visible="(v: boolean) => showPoolDialog = v" />
   </div>
 </template>
 
@@ -172,6 +175,8 @@ import { recordWrite, stampCommandLine, currentAbsoluteLine } from '../services/
 import { useZmodemStore } from '../stores/zmodemStore'
 import ZmodemTransfer from './ZmodemTransfer.vue'
 import TerminalScreenPreview from './TerminalScreenPreview.vue'
+import PasswordPoolManager from './PasswordPoolManager.vue'
+import { usePasswordPoolStore } from '../stores/passwordPoolStore'
 import { Browser, Clipboard, Events } from '@wailsio/runtime'
 import { ChevronUp, ChevronDown, X } from '@lucide/vue'
 
@@ -263,12 +268,81 @@ const dragOver = ref(false)
 let dragEnterCount = 0
 
 const suggestions = useSuggestions()
+const pool = usePasswordPoolStore()
 let terminalInput: ReturnType<typeof useTerminalInput> | null = null
 let terminal: Terminal | null = null
 let onDataDispose: { dispose(): void } | null = null
 let keyHandlerDispose: { dispose(): void } | null = null
 let resizeObserver: ResizeObserver | null = null
 let intersectionObserver: IntersectionObserver | null = null
+
+// Password pool: quick-pick candidates surfaced at the cursor (like AI
+  // transcription) when a remote password prompt is detected, plus the manager.
+const showPoolDialog = ref(false)
+
+// Tail of recently received visible output. Spots a remote password prompt
+// (sudo/passwd) even when it arrived split across chunks.
+let recentTerminalOutput = ''
+// Fingerprint of the output tail when we last bubbled the pool candidates, so
+// the same prompt's trailing chunks don't re-trigger right after closing the
+// candidates, while a freshly repeated prompt (e.g. after a wrong password)
+// does — the output tail will have advanced.
+let lastTriggerTail = ''
+// Tight match: only triggers when a password-style prompt is the LAST thing on
+// the terminal's output tail (the cursor is sitting there awaiting input) —
+// e.g. "[sudo] password for user:", "Login password:", "Enter passphrase:".
+// Ordinary output that merely mentions "password" mid-line no longer fires.
+const PASSWORD_PROMPT_RE =
+  /(?:\[[^\]]+\])?\s*(?:login\s+|sudo\s+)?(?:password|passphrase)\b[^:\n]*\s*[:?]\s*$/i
+
+function showPasswordPoolSuggestions() {
+  if (!props.sessionId) return
+  void (async () => {
+    try {
+      if (!pool.loaded) await pool.load()
+    } catch {
+      suggestions.close()
+      return
+    }
+    suggestions.showPasswordPool(pool.accounts)
+  })()
+}
+
+// Called from onData on every chunk the terminal receives. Surfacing the quick
+// picks on the *remote prompt* — not on local typing — is the moment the user
+// actually needs to enter a password.
+function detectPasswordPrompt(data: string) {
+  if (!props.sessionId) return
+  recentTerminalOutput = (recentTerminalOutput + sanitizeTerminalOutput(data)).slice(-240)
+
+  // 用户已离开密码输入态（不再 echo-off）且当前输出也不再是密码提示
+  // → 收掉候选（例如手输密码并提交之后）。
+  if (suggestions.isVisible() && terminalInput && !terminalInput.isPasswordMode() && !PASSWORD_PROMPT_RE.test(recentTerminalOutput)) {
+    suggestions.close()
+    return
+  }
+
+  if (suggestions.isVisible()) return
+  if (!PASSWORD_PROMPT_RE.test(recentTerminalOutput)) return
+  // Only bubble when the output tail has advanced — a fresh/repeated prompt
+  // arrived — not the same prompt's remaining chunks after a close.
+  if (recentTerminalOutput === lastTriggerTail) return
+  lastTriggerTail = recentTerminalOutput
+  showPasswordPoolSuggestions()
+}
+
+function isPasswordSuggestionContext(): boolean {
+  return suggestions.state.value.items.some(i => i.type === 'password')
+}
+
+// Ctrl+Shift+P manually reopens the quick picks for the current session.
+function onPasswordShortcut() {
+  if (props.mode !== 'ssh' && props.mode !== 'local') return
+  showPasswordPoolSuggestions()
+}
+function openPoolDialog() {
+  showPoolDialog.value = true
+}
 // Track how many sessionStore chunks have been written to the terminal
 // so we can replay only missed data on KeepAlive reactivation.
 let writtenChunks = 0
@@ -600,6 +674,20 @@ async function applySuggestion(item: ReturnType<typeof suggestions.getSelectedIt
     return
   }
 
+  // Password pool: inject the selected account straight into the running
+  // session — not backfilled into the command buffer.
+  if (item.type === 'password') {
+    suggestions.close()
+    if (item.value === '__manage') {
+      openPoolDialog()
+      return
+    }
+    if (props.sessionId) {
+      await pool.injectToSession(props.sessionId, item.value)
+    }
+    return
+  }
+
   const sid = props.sessionId
 
   if (item.type === 'ai-result' || item.type === 'history' || item.type === 'quick-command') {
@@ -849,6 +937,20 @@ function handleTerminalKey(e: KeyboardEvent): boolean {
   }
 
   // Check global shortcuts first (Ctrl+Shift+/Alt+ combos)
+  // Password pool: Ctrl+J (default) — and Ctrl+Shift+P as a fallback — opens the
+  // quick picks to fill a pool password into the current session. Only
+  // meaningful for sessions with a live stdin (ssh/local).
+  const poolKey = e.ctrlKey && !e.altKey && !e.metaKey && (
+    (e.key === 'j' || e.key === 'J') && !e.shiftKey ||
+    e.shiftKey && (e.key === 'p' || e.key === 'P')
+  )
+  if (e.type === 'keydown' && poolKey) {
+    if (props.mode === 'ssh' || props.mode === 'local') {
+      e.preventDefault()
+      onPasswordShortcut()
+    }
+    return false
+  }
   if (e.type === 'keydown' && !onTerminalKey(e)) return false
 
   // A bare modifier key (Shift/Ctrl/Alt/Meta held alone) produces no input, yet
@@ -946,7 +1048,9 @@ function handleTerminalKey(e: KeyboardEvent): boolean {
       }
     }
     if (e.key === 'Enter') {
-      // Only apply suggestion if user explicitly selected one with arrow keys
+      // Password-pool candidates: Enter fills the highlighted account — the
+      // quick pick. Press Escape to exit the candidates so you can type the
+      // password by hand.
       const selected = suggestions.getSelectedItem()
       if (selected) {
         e.preventDefault()
@@ -1305,6 +1409,10 @@ onMounted(() => {
       return
     }
     if (payload.id !== props.sessionId || !terminal) return
+
+    // 密码池：远端输出的密码提示（sudo/passwd 等）到达时，在光标处给出候选——
+    // 此刻正是用户真正需要输入密码的时刻。
+    if (props.mode === 'ssh' || props.mode === 'local') detectPasswordPrompt(payload.data)
 
     // 取消后 2 秒内吞掉所有数据，防止残余二进制乱码
     if (Date.now() < zmodemCancellingUntil) {

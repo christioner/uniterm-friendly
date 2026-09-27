@@ -19,8 +19,13 @@
         <span class="suggestion-desc">
           <el-icon v-if="item.type === 'quick-command'"><Zap :size="'0.75rem'" /></el-icon>
           <el-icon v-else-if="item.type === 'history'"><Clock :size="'0.75rem'" /></el-icon>
+          <el-icon v-else-if="item.type === 'password'"><KeyRound :size="'0.75rem'" /></el-icon>
         </span>
-        <span v-if="item.type === 'quick-command' && item.label !== item.value" class="suggestion-label">
+        <span v-if="item.type === 'password'" class="suggestion-label">
+          <span class="qc-name">{{ item.label }}</span>
+          <span v-if="item.username" class="qc-cmd">{{ item.username }}</span>
+        </span>
+        <span v-else-if="item.type === 'quick-command' && item.label !== item.value" class="suggestion-label">
           <span class="qc-name">
             <template v-for="(char, charIdx) in item.label" :key="charIdx">
               <span :class="{ 'match-char': item.matchIndices?.includes(charIdx) }">{{ char }}</span>
@@ -62,7 +67,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { Trash2, Clock, Zap, Sparkles } from '@lucide/vue'
+import { Trash2, Clock, Zap, Sparkles, KeyRound } from '@lucide/vue'
 import type { SuggestionItem } from '../composables/useSuggestions'
 
 const props = defineProps<{

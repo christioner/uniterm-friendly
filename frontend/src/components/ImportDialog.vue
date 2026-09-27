@@ -45,7 +45,8 @@
 import { ref, watch } from 'vue'
 import { useI18n } from '../i18n'
 import { msg } from '../services/message'
-import { ParseImportFile, ApplyImport, OpenFileDialogFiltered, OpenDirectoryDialog } from '../../bindings/github.com/ys-ll/uniterm/app'
+import { ParseImportFile, ApplyImport, SyncConfigureRepo, OpenFileDialogFiltered, OpenDirectoryDialog } from '../../bindings/github.com/ys-ll/uniterm/app'
+import { ElMessageBox } from 'element-plus'
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ (e: 'update:visible', v: boolean): void; (e: 'done', count: number): void }>()
@@ -92,6 +93,13 @@ async function onImport() {
       (format.value === 'uniterm' || format.value === 'windterm') ? password.value : '')
     await ApplyImport({ groups: result.groups || [], connections: result.connections || [] } as any)
     const count = (result.connections || []).length
+
+    // Restore the embedded cloud-sync repo config, if the export carried one.
+    const syncCfg = (result as any).sync
+    if (syncCfg && syncCfg.repoUrl) {
+      if (await applyEmbeddedSync(syncCfg)) msg.success(t('importExport.restoreSyncDone'))
+    }
+
     if (result.warnings && result.warnings.length) {
       msg.warning(result.warnings.join('\n'))
     }
@@ -102,6 +110,35 @@ async function onImport() {
     msg.error(e?.message || String(e))
   } finally {
     importing.value = false
+  }
+}
+
+// If the exported file carried a cloud-sync repo source, initialize sync here:
+// ConfigureRepo derives the encryption key from the master password and stores
+// it in the OS keychain, which this machine needs to decrypt the synced files.
+async function applyEmbeddedSync(cfg: any): Promise<boolean> {
+  let masterPassword: string
+  try {
+    const r = await ElMessageBox.prompt(
+      t('importExport.restoreSyncPasswordHint'),
+      t('importExport.restoreSyncTitle'),
+      {
+        inputType: 'password',
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        inputValidator: (v) => (v && v.length > 0) || t('importExport.restoreSyncPasswordRequired'),
+      }
+    )
+    masterPassword = r.value || ''
+  } catch {
+    return false // user cancelled — keep the connections import only
+  }
+  try {
+    await SyncConfigureRepo(cfg.repoUrl, cfg.username || '', '', masterPassword)
+    return true
+  } catch (e: any) {
+    msg.error(t('importExport.restoreSyncFailed') + (e?.message ? `: ${e.message}` : ''))
+    return false
   }
 }
 </script>
